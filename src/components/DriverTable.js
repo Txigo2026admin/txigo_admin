@@ -1,90 +1,114 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import './DriverTable.css';
-import DriverDetailsModal from './DriverDetailsModal';
+import DriverEditPage from './DriverEditPage';
+import { getDrivers, updateDriver, getDriverDetails, deleteDriver } from '../api/driverService';
 
 const DriverTable = () => {
-  // Dummy data generated based on the txigo_app global_state fields:
-  // fullName, dob, email, address, pincode, state, aadharNumber, rcNumber
-  const [data, setData] = useState([
-    {
-      id: 1,
-      fullName: 'Rahul Sharma',
-      dob: '1992-05-14',
-      email: 'rahul.sharma@example.com',
-      pincode: '700001',
-      state: 'West Bengal',
-      address: 'Kolkata, Park Street',
-      mobile: '7980641007',
-      vehicleType: 'Car',
-      rcNumber: 'WB04F1234',
-      aadharNumber: '1234 5678 9012',
-      panNumber: 'ABCDE1234F',
-      dlNumber: 'DL-1234567890',
-      aadharFrontUploaded: true,
-      aadharBackUploaded: true,
-      panFrontUploaded: true,
-      panBackUploaded: true,
-      dlFrontUploaded: true,
-      dlBackUploaded: true,
-      rcFrontUploaded: true,
-      rcBackUploaded: true,
-      carFrontUploaded: true,
-      carBackUploaded: true,
-      registeredAt: '2022-07-09 12:52:15',
-      verifyAt: '2026-02-03 17:22:56',
-      type: 'regular',
-      status: 'Active'
-    },
-    {
-      id: 2,
-      fullName: 'Amit Kumar',
-      email: 'amit.k@example.com',
-      pincode: '110001',
-      state: 'Delhi',
-      address: 'Connaught Place',
-      mobile: '9876543210',
-      vehicleType: 'Mini',
-      rcNumber: 'DL1CAB4321',
-      registeredAt: '2023-01-15 09:30:00',
-      verifyAt: '2026-02-14 10:45:00',
-      type: 'regular',
-      status: 'Blocked'
-    },
-    {
-      id: 3,
-      fullName: 'Priya Singh',
-      email: 'priya.s@example.com',
-      pincode: '400001',
-      state: 'Maharashtra',
-      address: 'Mumbai CST',
-      mobile: '9123456789',
-      vehicleType: 'Sedan',
-      rcNumber: 'MH01AB9876',
-      registeredAt: '2023-05-20 14:15:22',
-      verifyAt: 'Pending',
-      type: 'pending',
-      status: 'Inactive'
-    }
-  ]);
-
+  const [data, setData] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [selectedDriver, setSelectedDriver] = useState(null);
+  
+  // Filters state
+  const [filters, setFilters] = useState({
+    category: '',
+    state: '',
+    city: '',
+    status: '',
+    dutyStatus: '',
+    plan: '',
+    search: '',
+    page: 1,
+    limit: 10
+  });
 
-  const handleSaveStatus = (driverId, newStatus) => {
-    setData((prevData) =>
-      prevData.map((driver) =>
-        driver.id === driverId ? { ...driver, status: newStatus } : driver
-      )
-    );
-    setSelectedDriver(null); // Close modal on save
+  const fetchDrivers = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await getDrivers(filters);
+      setData(result.drivers || []);
+      setTotal(result.total || 0);
+    } catch (err) {
+      setError(err.message || 'Failed to fetch drivers');
+    } finally {
+      setLoading(false);
+    }
+  }, [filters]);
+
+  useEffect(() => {
+    fetchDrivers();
+  }, [fetchDrivers]);
+
+  const handleFilterChange = (field, value) => {
+    setFilters(prev => ({ ...prev, [field]: value, page: 1 }));
   };
 
-  const handleStatusChangeForm = (driverId, newStatus) => {
-    setData((prevData) =>
-      prevData.map((driver) =>
-        driver.id === driverId ? { ...driver, status: newStatus } : driver
-      )
-    );
+  const handleSearch = (value) => {
+    setFilters(prev => ({ ...prev, search: value, page: 1 }));
   };
+
+  // ✅ Fetch full driver details and navigate to edit page
+  const handleViewDriver = async (driver) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const fullDriver = await getDriverDetails(driver.id);
+      setSelectedDriver(fullDriver);
+    } catch (err) {
+      setError(err.message || 'Failed to fetch driver details');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ✅ Save all changes and go back to list
+  const handleSaveDriver = (updatedDriver) => {
+    // Re-fetch to get latest data
+    fetchDrivers();
+    setSelectedDriver(null);
+  };
+
+  // ✅ Go back without saving
+  const handleBack = () => {
+    setSelectedDriver(null);
+  };
+
+  const handleStatusChangeInline = async (driverId, newStatus) => {
+    try {
+      await updateDriver(driverId, { status: newStatus });
+      setData((prev) =>
+        prev.map((d) => (d.id === driverId ? { ...d, status: newStatus } : d))
+      );
+    } catch (err) {
+      alert('Failed to update status: ' + (err.message || 'Unknown error'));
+    }
+  };
+
+  const handleDeleteDriver = async (driverId) => {
+    const isConfirmed = window.confirm('Are you sure you want to delete this driver? This action cannot be undone.');
+    if (!isConfirmed) return;
+
+    try {
+      await deleteDriver(driverId);
+      setData((prev) => prev.filter((d) => d.id !== driverId));
+      setTotal((prev) => prev - 1);
+    } catch (err) {
+      alert('Failed to delete driver: ' + (err.message || 'Unknown error'));
+    }
+  };
+
+  // ✅ If a driver is selected, show the edit page instead of the table
+  if (selectedDriver) {
+    return (
+      <DriverEditPage
+        driver={selectedDriver}
+        onBack={handleBack}
+        onSave={handleSaveDriver}
+      />
+    );
+  }
 
   return (
     <div className="admin-dashboard-container">
@@ -93,116 +117,233 @@ const DriverTable = () => {
         <p className="dashboard-subtitle">Manage and verify registered drivers, their KYC, and vehicle documents.</p>
       </div>
 
-      {/* Top Filters exactly like the screenshot */}
       <div className="filters-container">
         <div className="filters-row">
-          <select className="filter-select">
+          <select 
+            className="filter-select"
+            value={filters.category}
+            onChange={(e) => handleFilterChange('category', e.target.value)}
+          >
             <option value="">Category</option>
-            <option value="scooty">Scooty</option>
-            <option value="bike">Bike</option>
-            <option value="car">Car</option>
+            <option value="Mini">Mini</option>
+            <option value="Sedan">Sedan</option>
+            <option value="SUV">SUV</option>
+            <option value="SUV+">SUV+</option>
+            <option value="Tempo Traveller">Tempo Traveller</option>
           </select>
-          
-          <input type="text" className="filter-input" placeholder="Search City" />
-          
-          <select className="filter-select">
+          <select 
+            className="filter-select"
+            value={filters.state}
+            onChange={(e) => handleFilterChange('state', e.target.value)}
+          >
+            <option value="">Select State</option>
+            <option value="Andhra Pradesh">Andhra Pradesh</option>
+            <option value="Arunachal Pradesh">Arunachal Pradesh</option>
+            <option value="Assam">Assam</option>
+            <option value="Bihar">Bihar</option>
+            <option value="Chhattisgarh">Chhattisgarh</option>
+            <option value="Goa">Goa</option>
+            <option value="Gujarat">Gujarat</option>
+            <option value="Haryana">Haryana</option>
+            <option value="Himachal Pradesh">Himachal Pradesh</option>
+            <option value="Jharkhand">Jharkhand</option>
+            <option value="Karnataka">Karnataka</option>
+            <option value="Kerala">Kerala</option>
+            <option value="Madhya Pradesh">Madhya Pradesh</option>
+            <option value="Maharashtra">Maharashtra</option>
+            <option value="Manipur">Manipur</option>
+            <option value="Meghalaya">Meghalaya</option>
+            <option value="Mizoram">Mizoram</option>
+            <option value="Nagaland">Nagaland</option>
+            <option value="Odisha">Odisha</option>
+            <option value="Punjab">Punjab</option>
+            <option value="Rajasthan">Rajasthan</option>
+            <option value="Sikkim">Sikkim</option>
+            <option value="Tamil Nadu">Tamil Nadu</option>
+            <option value="Telangana">Telangana</option>
+            <option value="Tripura">Tripura</option>
+            <option value="Uttar Pradesh">Uttar Pradesh</option>
+            <option value="Uttarakhand">Uttarakhand</option>
+            <option value="West Bengal">West Bengal</option>
+          </select>
+          <select 
+            className="filter-select"
+            value={filters.dutyStatus}
+            onChange={(e) => handleFilterChange('dutyStatus', e.target.value)}
+          >
+            <option value="">Driver Status</option>
+            <option value="Online">Online</option>
+            <option value="Offline">Offline</option>
+            <option value="On Ride">On Ride</option>
+          </select>
+          <input 
+            type="text" 
+            className="filter-input" 
+            placeholder="Search City" 
+            value={filters.city}
+            onChange={(e) => handleFilterChange('city', e.target.value)}
+          />
+          <select 
+            className="filter-select"
+            value={filters.status}
+            onChange={(e) => handleFilterChange('status', e.target.value)}
+          >
             <option value="">Select Status</option>
             <option value="under_verification">Under Verification</option>
             <option value="verified">Verified</option>
             <option value="rejected">Rejected</option>
+            <option value="active">Active</option>
+            <option value="blocked">Blocked</option>
+            <option value="inactive">Inactive</option>
           </select>
-
-          <select className="filter-select">
-            <option value="">Select Type</option>
-            <option value="regular">Regular</option>
-            <option value="premium">Premium</option>
+          <select 
+            className="filter-select"
+            value={filters.plan}
+            onChange={(e) => handleFilterChange('plan', e.target.value)}
+          >
+            <option value="">Select Plan</option>
+            <option value="None">None</option>
+            <option value="Regular">Regular</option>
+            <option value="Prime">Prime</option>
           </select>
-
           <div className="search-input-wrapper">
             <label>Search:</label>
-            <input type="text" className="search-input" />
+            <input 
+              type="text" 
+              className="search-input" 
+              value={filters.search}
+              onChange={(e) => handleSearch(e.target.value)}
+            />
           </div>
         </div>
       </div>
 
       <div className="table-container">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Pincode</th>
-              <th>City</th>
-              <th>Mobile</th>
-              <th>Vehicle Type / RC</th>
-              <th>Registered at</th>
-              <th>Verify At</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.map((driver) => (
-              <tr key={driver.id}>
-                <td>
-                  <span className="user-name">{driver.fullName}</span>
-                  <span className="sub-text">{driver.email}</span>
-                </td>
-                <td>{driver.pincode}</td>
-                <td>{driver.address}</td>
-                <td>{driver.mobile}</td>
-                <td>
-                  <span className="user-name">{driver.vehicleType}</span>
-                  <span className="sub-text">{driver.rcNumber}</span>
-                </td>
-                <td>
-                  <span className="user-name">{driver.registeredAt.split(' ')[0]}</span>
-                  <span className="sub-text">{driver.registeredAt.split(' ')[1]}</span>
-                </td>
-                <td>
-                  {driver.verifyAt === 'Pending' ? (
-                    <span style={{ color: '#b45309', fontWeight: 500 }}>Pending</span>
-                  ) : (
-                    <>
-                      <span className="user-name">{driver.verifyAt.split(' ')[0]}</span>
-                      <span className="sub-text">{driver.verifyAt.split(' ')[1]}</span>
-                    </>
-                  )}
-                </td>
-                <td>
-                  <div className="action-cell">
-                    <button className="btn-view" onClick={() => setSelectedDriver(driver)}>View</button>
-                    <select 
-                      className="status-dropdown" 
-                      value={driver.status}
-                      onChange={(e) => handleStatusChangeForm(driver.id, e.target.value)}
-                    >
-                      <option value="Active">Active</option>
-                      <option value="Pending">Pending</option>
-                      <option value="Blocked">Blocked</option>
-                      <option value="Inactive">Inactive</option>
-                    </select>
-                  </div>
-                </td>
+        {loading ? (
+          <div className="loading-state">Loading drivers...</div>
+        ) : error ? (
+          <div className="error-state">{error}</div>
+        ) : (
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Pincode</th>
+                <th>State</th>
+                <th>City</th>
+                <th>Mobile</th>
+                <th>Vehicle Type / RC</th>
+                <th>Registered at</th>
+                <th>Plan</th>
+                <th>Driver Status</th>
+                <th>Verify At</th>
+                <th>Action</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-        
+            </thead>
+            <tbody>
+              {data.length === 0 ? (
+                <tr>
+                  <td colSpan="10" style={{ textAlign: 'center', padding: '2rem' }}>No drivers found.</td>
+                </tr>
+              ) : (
+                data.map((driver) => (
+                  <tr key={driver.id}>
+                    <td>
+                      <span className="user-name">{driver.fullName || '(New Driver)'}</span>
+                      <span className="sub-text">{driver.email || 'No email provided'}</span>
+                    </td>
+                    <td>{driver.pincode}</td>
+                    <td>{driver.state || 'N/A'}</td>
+                    <td>{driver.address || 'N/A'}</td>
+                    <td>{driver.mobile}</td>
+                    <td>
+                      <span className="user-name">{driver.vehicleType}</span>
+                      <span className="sub-text">{driver.rcNumber}</span>
+                    </td>
+                    <td>
+                      <span className="user-name">{driver.registeredAt?.split(' ')[0]}</span>
+                      <span className="sub-text">{driver.registeredAt?.split(' ')[1]}</span>
+                    </td>
+                    <td>
+                      <span className={`plan-badge ${(driver.subscriptionPlan || 'none').toLowerCase()}`}>
+                        {driver.subscriptionPlan || 'Regular'}
+                      </span>
+                    </td>
+                    <td>
+                      <span className={`status-badge ${(driver.dutyStatus || 'offline').toLowerCase().replace(' ', '-')}`}>
+                        {driver.dutyStatus || 'Offline'}
+                      </span>
+                    </td>
+                    <td>
+                      {!driver.verifyAt || driver.verifyAt === 'Pending' ? (
+                        <span style={{ color: '#b45309', fontWeight: 500 }}>Pending</span>
+                      ) : (
+                        <>
+                          <span className="user-name">{driver.verifyAt?.split(' ')[0]}</span>
+                          <span className="sub-text">{driver.verifyAt?.split(' ')[1]}</span>
+                        </>
+                      )}
+                    </td>
+                    <td>
+                      <div className="action-cell">
+                        <button 
+                          className="btn-action-view" 
+                          title="Inspect Driver"
+                          onClick={() => handleViewDriver(driver)}
+                        >
+                          👁️
+                        </button>
+                        <button 
+                          className="btn-action-delete" 
+                          title="Delete Driver"
+                          onClick={() => handleDeleteDriver(driver.id)}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            fontSize: '16px',
+                            marginLeft: '4px',
+                            marginRight: '8px',
+                            color: '#ef4444'
+                          }}
+                        >
+                          🗑️
+                        </button>
+                        <select
+                          className="status-dropdown"
+                          value={driver.status}
+                          onChange={(e) => handleStatusChangeInline(driver.id, e.target.value)}
+                        >
+                          <option value="Active">Active</option>
+                          <option value="Inactive">Inactive</option>
+                        </select>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        )}
+
         <div className="table-footer">
           <div className="entries-info">
-            Show <select className="entries-select"><option>10</option><option>25</option><option>50</option></select> entries
+            Show 
+            <select 
+              className="entries-select" 
+              value={filters.limit}
+              onChange={(e) => handleFilterChange('limit', parseInt(e.target.value))}
+            >
+              <option value="10">10</option>
+              <option value="25">25</option>
+              <option value="50">50</option>
+            </select> entries
           </div>
           <div className="entries-info">
-            Showing 1 to {data.length} of {data.length} entries
+            Showing {(filters.page - 1) * filters.limit + 1} to {Math.min(filters.page * filters.limit, total)} of {total} entries
           </div>
         </div>
       </div>
-
-      {/* Driver Details Modal */}
-      <DriverDetailsModal 
-        driver={selectedDriver} 
-        onClose={() => setSelectedDriver(null)}
-        onSave={handleSaveStatus}
-      />
     </div>
   );
 };
