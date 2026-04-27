@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const apiClient = axios.create({
-  baseURL: 'http://localhost:5001/api',
+  baseURL: process.env.REACT_APP_BASE_URL || 'https://txigo-backend.vercel.app/api',
   headers: {
     'Content-Type': 'application/json',
   },
