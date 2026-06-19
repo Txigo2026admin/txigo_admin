@@ -414,3 +414,150 @@
   }
   .header-title-wrapper { max-width: 100%; }
 }
+
+/* ── Pilot Selection Styles ── */
+.pilot-selection-area {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px dashed #e2e8f0;
+}
+
+.pilot-selection-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.sub-section-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
+}
+
+.pilot-selection-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.btn-select-all {
+  background: #22c55e;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.btn-select-all:hover {
+  background: #16a34a;
+  transform: translateY(-1px);
+}
+
+.pilot-search-bar input {
+  padding: 10px 16px;
+  font-size: 13px;
+  width: 280px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+}
+
+.selected-pilots-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.pilot-badge {
+  background: #eff6ff;
+  color: #2563eb;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid #dbeafe;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.badge-close {
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  color: #94a3b8;
+}
+
+.badge-close:hover {
+  color: #ef4444;
+}
+
+.no-pilots-hint {
+  font-size: 12px;
+  color: #94a3b8;
+  font-style: italic;
+}
+
+.pilot-list-mini {
+  max-height: 250px;
+  overflow-y: auto;
+  border: 1px solid #f1f5f9;
+  border-radius: 12px;
+  background: #fcfdfe;
+}
+
+.pilot-item-mini {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid #f1f5f9;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pilot-item-mini:last-child {
+  border-bottom: none;
+}
+
+.pilot-item-mini:hover {
+  background: #f8fafc;
+}
+
+.pilot-item-mini.selected {
+  background: #f0f7ff;
+}
+
+.pilot-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pilot-item-info strong {
+  font-size: 13px;
+  color: #1e293b;
+}
+
+.pilot-item-info span {
+  font-size: 11px;
+  color: #64748b;
+}
+
+.pilot-item-check {
+  font-size: 16px;
+}
+
+.loading-mini, .no-pilots-found {
+  padding: 20px;
+  text-align: center;
+  font-size: 13px;
+  color: #94a3b8;
+}

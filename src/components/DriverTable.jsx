@@ -189,12 +189,9 @@ const DriverTable = () => {
             onChange={(e) => handleFilterChange('status', e.target.value)}
           >
             <option value="">Select Status</option>
-            <option value="under_verification">Under Verification</option>
-            <option value="verified">Verified</option>
-            <option value="rejected">Rejected</option>
-            <option value="active">Active</option>
-            <option value="blocked">Blocked</option>
-            <option value="inactive">Inactive</option>
+            <option value="Active">Active</option>
+            <option value="Pending">Pending</option>
+            <option value="Blocked">Blocked</option>
           </select>
           <select 
             className="filter-select"
@@ -254,7 +251,7 @@ const DriverTable = () => {
                     </td>
                     <td>{driver.pincode}</td>
                     <td>{driver.state || 'N/A'}</td>
-                    <td>{driver.address || 'N/A'}</td>
+                    <td>{driver.city || 'N/A'}</td>
                     <td>{driver.mobile}</td>
                     <td>
                       <span className="user-name">{driver.vehicleType}</span>
@@ -315,7 +312,8 @@ const DriverTable = () => {
                           onChange={(e) => handleStatusChangeInline(driver.id, e.target.value)}
                         >
                           <option value="Active">Active</option>
-                          <option value="Inactive">Inactive</option>
+                          <option value="Pending">Pending</option>
+                          <option value="Blocked">Blocked</option>
                         </select>
                       </div>
                     </td>

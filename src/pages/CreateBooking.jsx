@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './CreateBooking.css';
 import { createBooking } from '../api/bookingService';
-import { getStates } from '../api/driverService';
+import { getStates, getDrivers } from '../api/driverService';
 import { INDIA_STATES } from '../utils/indiaStates';
 
 const CreateBooking = () => {
@@ -49,13 +49,17 @@ const CreateBooking = () => {
     advancedAmount: '',
     pilotShare: '',
     companyShare: '',
-    allocateOurPilot: false
+    allocateOurPilot: false,
+    eligiblePilots: []
   });
 
   const [showPilotInfoModal, setShowPilotInfoModal] = useState(false);
   const [message, setMessage] = useState({ text: '', type: '' });
   const [loading, setLoading] = useState(false);
   const [allStates, setAllStates] = useState([]);
+  const [availableDrivers, setAvailableDrivers] = useState([]);
+  const [pilotSearchTerm, setPilotSearchTerm] = useState('');
+  const [isFetchingDrivers, setIsFetchingDrivers] = useState(false);
 
   useEffect(() => {
     const loadStates = async () => {
@@ -76,6 +80,44 @@ const CreateBooking = () => {
     }));
   };
 
+  const fetchAvailableDrivers = async () => {
+    if (!booking.allocateOurPilot) return;
+    setIsFetchingDrivers(true);
+    try {
+      const filters = {
+        search: pilotSearchTerm,
+        state: booking.state,
+        limit: 100 // Limit for better performance in dropdown
+      };
+      const data = await getDrivers(filters);
+      setAvailableDrivers(data.drivers || []);
+    } catch (err) {
+      console.error('Error fetching drivers:', err);
+    } finally {
+      setIsFetchingDrivers(false);
+    }
+  };
+
+  useEffect(() => {
+    if (booking.allocateOurPilot) {
+      const timer = setTimeout(() => {
+        fetchAvailableDrivers();
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [booking.allocateOurPilot, pilotSearchTerm, booking.state]);
+
+  const togglePilotSelection = (driver) => {
+    setBooking(prev => {
+      const isSelected = prev.eligiblePilots.some(p => p.id === driver.id);
+      const nextPilots = isSelected 
+        ? prev.eligiblePilots.filter(p => p.id !== driver.id)
+        : [...prev.eligiblePilots, { id: driver.id, name: driver.fullName, mobile: driver.mobile }];
+      
+      return { ...prev, eligiblePilots: nextPilots };
+    });
+  };
+
 
   const handleSubmit = async (e) => {
     if (e) e.preventDefault();
@@ -87,6 +129,7 @@ const CreateBooking = () => {
     if (!booking.mobileNumber) missingFields.push('Mobile Number');
     if (!booking.bookingType) missingFields.push('Booking Type');
     if (!booking.pickupDateTime) missingFields.push('Pickup Date and Time');
+    if (!booking.state) missingFields.push('State');
     
     // Conditional requirements
     if (booking.bookingType === 'Outstation' && !booking.wayType) missingFields.push('Way Type');
@@ -108,6 +151,7 @@ const CreateBooking = () => {
       await createBooking(booking);
       
       setMessage({ text: 'Booking successfully created!', type: 'success' });
+      alert('Booking Sent');
       
       // Reset form on success (except defaults)
       setBooking({
@@ -140,8 +184,8 @@ const CreateBooking = () => {
         totalFare: '',
         advancedAmount: '',
         pilotShare: '',
-        companyShare: '',
-        allocateOurPilot: false
+        allocateOurPilot: false,
+        eligiblePilots: []
       });
       
     } catch (error) {
@@ -428,6 +472,73 @@ const CreateBooking = () => {
               </select>
             </div>
           </div>
+
+          {booking.allocateOurPilot && (
+            <div className="pilot-selection-area anim-fade-in">
+              <div className="pilot-selection-header">
+                <h3 className="sub-section-title">Select Specific Pilots</h3>
+                <div className="pilot-selection-actions">
+                  <button 
+                    type="button" 
+                    className="btn-select-all"
+                    onClick={() => {
+                      if (availableDrivers.length > 0) {
+                        setBooking(prev => ({
+                          ...prev,
+                          eligiblePilots: availableDrivers.map(d => ({ id: d.id, name: d.fullName, mobile: d.mobile }))
+                        }));
+                      }
+                    }}
+                  >
+                    Multiple Allocate (Select All)
+                  </button>
+                  <div className="pilot-search-bar">
+                    <input 
+                      type="text" 
+                      placeholder="Search by name, mobile, city..." 
+                      value={pilotSearchTerm}
+                      onChange={(e) => setPilotSearchTerm(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="selected-pilots-badges">
+                {booking.eligiblePilots.map(p => (
+                  <div key={p.id} className="pilot-badge">
+                    {p.name} <span className="badge-close" onClick={() => togglePilotSelection({ id: p.id })}>×</span>
+                  </div>
+                ))}
+                {booking.eligiblePilots.length === 0 && (
+                  <span className="no-pilots-hint">No pilots selected. If empty, all region pilots can see it.</span>
+                )}
+              </div>
+
+              <div className="pilot-list-mini">
+                {isFetchingDrivers ? (
+                  <div className="loading-mini">Loading pilots...</div>
+                ) : availableDrivers.length > 0 ? (
+                  availableDrivers.map(driver => (
+                    <div 
+                      key={driver.id} 
+                      className={`pilot-item-mini ${booking.eligiblePilots.some(p => p.id === driver.id) ? 'selected' : ''}`}
+                      onClick={() => togglePilotSelection(driver)}
+                    >
+                      <div className="pilot-item-info">
+                        <strong>{driver.fullName}</strong>
+                        <span>{driver.mobile} • {driver.city}</span>
+                      </div>
+                      <div className="pilot-item-check">
+                        {booking.eligiblePilots.some(p => p.id === driver.id) ? '✅' : '○'}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="no-pilots-found">No pilots found for search/state.</div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* SECTION 5: PRICING & FARE */}

@@ -13,6 +13,7 @@ const mapToBackend = (data) => {
     wayType: data.wayType,
     airportDirection: data.airportDirection,
     rentalPackage: data.rentalPackage,
+    state: data.state, // Added to root level to fix validation error
     pickup: {
       address: data.pickupLocation,
       lat: Number(data.pickupLat) || 0,
@@ -47,6 +48,7 @@ const mapToBackend = (data) => {
         extraHour: Number(data.extraHour) || 0
       }
     },
+    eligiblePilots: data.eligiblePilots || [],
     status: data.bookingStatus || 'Pending'
   };
 };
@@ -97,6 +99,8 @@ const mapFromBackend = (item) => {
     // Legacy support (fallback to nested mobile if available)
     assignedDriverMobile: item.allocatedPilot?.mobile || item.assignedDriverMobile || null,
     
+    eligiblePilots: item.eligiblePilots || [],
+    
     bookingStatus: item.status || 'Pending',
     createdAt: item.createdAt
   };
@@ -108,6 +112,9 @@ export const unassignDriver = async (id) => {
   try {
     const response = await apiClient.patch(`/bookings/${id}`, { 
       assignedDriverMobile: null, 
+      allocatedPilot: null,
+      eligiblePilots: [],
+      isOwnPilotAllocated: false,
       status: 'Pending' 
     });
     return response.data;

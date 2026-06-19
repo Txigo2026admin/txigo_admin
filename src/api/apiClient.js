@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const apiClient = axios.create({
-  baseURL: process.env.REACT_APP_BASE_URL || 'https://txigo-backend.vercel.app/api',
+  baseURL: import.meta.env.VITE_BASE_URL || 'https://txigo-backend.vercel.app/api',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -13,6 +13,10 @@ apiClient.interceptors.request.use(
     const token = localStorage.getItem('txigo_admin_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+    // Bust 304 cache on every GET request
+    if (config.method === 'get' || !config.method) {
+      config.params = { ...config.params, _t: Date.now() };
     }
     return config;
   },

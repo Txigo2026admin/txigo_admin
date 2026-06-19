@@ -71,6 +71,7 @@ const BookingsList = () => {
       await updateBooking(targetBooking.id, { status: nextStatus });
       await fetchBookings();
       setShowStatusModal(false);
+      alert(nextStatus === 'Confirmed' ? 'Booking Accepted' : `Booking ${nextStatus}`);
       setTargetBooking(null);
     } catch (err) {
       alert(`Failed to update status to ${nextStatus}`);
@@ -190,7 +191,7 @@ const BookingsList = () => {
           <thead>
             <tr>
               <th>OrderID</th>
-              <th>Locations (Pickup -> Drop)</th>
+              <th>Locations (Pickup &rarr; Drop)</th>
               <th>Service Info</th>
               <th>Vehicle</th>
               <th>Driver Status</th>
@@ -207,7 +208,12 @@ const BookingsList = () => {
             ) : filteredBookings.length > 0 ? (
               filteredBookings.slice(0, entriesCount).map((booking) => (
                 <tr key={booking.id}>
-                  <td className="order-id">{booking.orderId || booking.id.substring(0, 4)}</td>
+                  <td className="order-id">
+                    {booking.orderId || booking.id.substring(0, 4)}
+                    {booking.allocateOurPilot && (
+                      <span className="restricted-badge-mini" title="Allocate Our Pilot Selected">Allocate Our Pilot Selected</span>
+                    )}
+                  </td>
                   <td className="location-cell">
                     <div className="route-info">
                       <span className="pickup">{booking.pickupLocation?.substring(0, 25)}...</span>

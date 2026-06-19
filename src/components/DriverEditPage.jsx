@@ -123,8 +123,22 @@ const ImageLightbox = ({ docKey, label, imageUrl, onClose }) => {
   );
 };
 
+// Convert Flutter DOB format (D/M/YYYY or DD/MM/YYYY) to YYYY-MM-DD for <input type="date">
+const normalizeDob = (dob) => {
+  if (!dob) return '';
+  // Already correct format
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dob)) return dob;
+  // Handle D/M/YYYY or DD/MM/YYYY
+  const parts = dob.split('/');
+  if (parts.length === 3) {
+    const [day, month, year] = parts;
+    return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  }
+  return dob;
+};
+
 const DriverEditPage = ({ driver, onBack, onSave }) => {
-  const [form, setForm] = useState({ ...driver });
+  const [form, setForm] = useState({ ...driver, dob: normalizeDob(driver.dob) });
   const [docImages, setDocImages] = useState({});
   const [lightbox, setLightbox] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -213,7 +227,7 @@ const DriverEditPage = ({ driver, onBack, onSave }) => {
         subscriptionPlan: form.subscriptionPlan || 'Regular',
         dutyStatus: form.dutyStatus || 'Offline',
         documents: documentsUpdate,
-        verifyAt: form.status === 'verified' || form.status === 'Active' ? new Date().toISOString() : form.verifyAt
+        verifyAt: form.status === 'Active' ? new Date().toISOString() : form.verifyAt
       };
 
       await updateDriver(driver.id, updateData);
@@ -422,11 +436,9 @@ const DriverEditPage = ({ driver, onBack, onSave }) => {
             <div className="edit-field">
               <label>Verification Status</label>
               <select value={form.status || ''} onChange={(e) => handleChange('status', e.target.value)}>
-                <option value="verified">Verified</option>
                 <option value="Active">Active</option>
-                <option value="Inactive">Inactive</option>
-                <option value="Under Review">Under Review</option>
-                <option value="Rejected">Rejected</option>
+                <option value="Pending">Pending</option>
+                <option value="Blocked">Blocked</option>
               </select>
             </div>
             {(form.status === 'Pending' || form.status === 'Blocked' || form.status === 'Rejected') && (

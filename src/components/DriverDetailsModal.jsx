@@ -59,8 +59,8 @@ const DriverDetailsModal = ({ driver, onClose, onSave }) => {
               <span className="detail-value">{driver.address || 'Not provided'}</span>
             </div>
             <div className="detail-item">
-              <span className="detail-label">State / Pincode</span>
-              <span className="detail-value">{driver.state || '-'} / {driver.pincode || '-'}</span>
+              <span className="detail-label">State / City / Pincode</span>
+              <span className="detail-value">{driver.state || '-'} / {driver.city || '-'} / {driver.pincode || '-'}</span>
             </div>
             <div className="detail-item">
               <span className="detail-label">Subscription Plan</span>
@@ -114,7 +114,10 @@ const DriverDetailsModal = ({ driver, onClose, onSave }) => {
             </div>
             <div className="detail-item">
               <div className="doc-item">
-                {/* Reserved for consistency if needed */}
+                <span className="doc-name">PAN Card (Back)</span>
+                <span className={`doc-status ${isUploaded('panBack') ? 'uploaded' : 'missing'}`}>
+                  {isUploaded('panBack') ? 'Uploaded ✓' : 'Missing ✗'}
+                </span>
               </div>
             </div>
             <div className="detail-item">
@@ -127,7 +130,10 @@ const DriverDetailsModal = ({ driver, onClose, onSave }) => {
             </div>
             <div className="detail-item">
               <div className="doc-item">
-                {/* Reserved for consistency if needed */}
+                <span className="doc-name">Driving License (Back)</span>
+                <span className={`doc-status ${isUploaded('dlBack') ? 'uploaded' : 'missing'}`}>
+                  {isUploaded('dlBack') ? 'Uploaded ✓' : 'Missing ✗'}
+                </span>
               </div>
             </div>
 
@@ -156,7 +162,10 @@ const DriverDetailsModal = ({ driver, onClose, onSave }) => {
             </div>
             <div className="detail-item">
               <div className="doc-item">
-                {/* Reserved for consistency if needed */}
+                <span className="doc-name">RC Document (Back)</span>
+                <span className={`doc-status ${isUploaded('rcBack') ? 'uploaded' : 'missing'}`}>
+                  {isUploaded('rcBack') ? 'Uploaded ✓' : 'Missing ✗'}
+                </span>
               </div>
             </div>
             <div className="detail-item">
@@ -169,7 +178,10 @@ const DriverDetailsModal = ({ driver, onClose, onSave }) => {
             </div>
             <div className="detail-item">
               <div className="doc-item">
-                {/* Reserved for consistency if needed */}
+                <span className="doc-name">Vehicle Photo (Back)</span>
+                <span className={`doc-status ${isUploaded('carBack') ? 'uploaded' : 'missing'}`}>
+                  {isUploaded('carBack') ? 'Uploaded ✓' : 'Missing ✗'}
+                </span>
               </div>
             </div>
           </div>

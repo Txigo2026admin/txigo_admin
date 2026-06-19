@@ -144,6 +144,8 @@ const EditBookingModal = ({ booking, onClose, onSave }) => {
         assignedDriverMobile: null, 
         acceptedByPilot: null, 
         allocatedPilot: null, 
+        eligiblePilots: [],
+        allocateOurPilot: false,
         bookingStatus: 'Pending' 
       }));
       setAssignMessage({ text: 'Driver unassigned successfully', type: 'success' });
@@ -160,18 +162,20 @@ const EditBookingModal = ({ booking, onClose, onSave }) => {
     setLoading(true);
     try {
       const allocationData = {
-        allocatedPilot: {
+        eligiblePilots: [{
           name: driver.fullName,
           mobile: driver.mobile,
           id: driver.id
-        },
-        status: 'Confirmed'
+        }],
+        isOwnPilotAllocated: true,
+        status: 'Pending'
       };
       await updateBooking(formData.id, allocationData);
       setFormData(prev => ({ 
         ...prev, 
-        allocatedPilot: allocationData.allocatedPilot, 
-        bookingStatus: 'Confirmed' 
+        eligiblePilots: allocationData.eligiblePilots,
+        allocateOurPilot: true,
+        bookingStatus: 'Pending'
       }));
       setAssignMessage({ text: 'Pilot allocated successfully!', type: 'success' });
       onSave(); // Refresh parent list
@@ -200,28 +204,30 @@ const EditBookingModal = ({ booking, onClose, onSave }) => {
       const primaryDriver = selectedPilots[0];
       
       const allocationData = {
-        allocatedPilot: {
-          name: primaryDriver.fullName,
-          mobile: primaryDriver.mobile,
-          id: primaryDriver.id
-        },
-        status: 'Confirmed',
-        // Optional: We could add a custom message to the timeline
-        timelineMessage: `Booking was broadcasted/allocated to multiple pilots: ${pilotNames}`
+        eligiblePilots: selectedPilots.map(p => ({
+          id: p.id,
+          name: p.fullName,
+          mobile: p.mobile
+        })),
+        isOwnPilotAllocated: true,
+        status: 'Pending',
+        timelineMessage: `Booking was restricted to ${selectedPilots.length} specific pilots: ${pilotNames}`
       };
 
       await updateBooking(formData.id, allocationData);
       
       setFormData(prev => ({ 
         ...prev, 
-        allocatedPilot: allocationData.allocatedPilot, 
-        bookingStatus: 'Confirmed' 
+        eligiblePilots: allocationData.eligiblePilots,
+        allocateOurPilot: true,
+        bookingStatus: 'Pending' 
       }));
       
       setAssignMessage({ text: `Allocated to ${selectedPilots.length} pilots!`, type: 'success' });
+      alert('Booking Sent');
       setIsMultiAllocateMode(false);
       setSelectedPilotIds(new Set());
-      onSave();
+      // Removed onSave() to remain on the same screen as requested
     } catch (err) {
       setError('Failed to broadcast allocation');
     } finally {
@@ -285,7 +291,12 @@ const EditBookingModal = ({ booking, onClose, onSave }) => {
       <div className="edit-page-header">
         <div className="header-left">
           <button className="btn-back-link" onClick={onClose}>← Back to Booking List</button>
-          <h1 className="edit-page-title">Management Dashboard - Booking #{formData.orderId}</h1>
+          <h1 className="edit-page-title">
+            Management Dashboard - Booking #{formData.orderId}
+            {formData.allocateOurPilot && (
+              <span className="allocate-pilot-tag">Allocate Our Pilot Selected</span>
+            )}
+          </h1>
         </div>
         <div className="header-actions" style={{ display: 'flex', alignItems: 'center' }}>
           <div className="booking-notification-wrapper" style={{ position: 'relative', marginRight: '15px' }}>
@@ -692,7 +703,15 @@ const EditBookingModal = ({ booking, onClose, onSave }) => {
                     <button 
                       type="button" 
                       className={`btn-multi-allocate ${isMultiAllocateMode ? 'active' : ''}`}
-                      onClick={() => setIsMultiAllocateMode(!isMultiAllocateMode)}
+                      onClick={() => {
+                        const newMode = !isMultiAllocateMode;
+                        setIsMultiAllocateMode(newMode);
+                        if (newMode && availableDrivers.length > 0) {
+                          setSelectedPilotIds(new Set(availableDrivers.map(d => d.id)));
+                        } else {
+                          setSelectedPilotIds(new Set());
+                        }
+                      }}
                     >
                       {isMultiAllocateMode ? 'Cancel Multi' : 'Multiple Allocate'}
                     </button>
@@ -781,7 +800,7 @@ const EditBookingModal = ({ booking, onClose, onSave }) => {
                                 />
                               </td>
                             )}
-                            <td>{driver.walletBalance < 500 ? <span className="tag-red">Yes</span> : 'No'}</td>
+                            <td>{driver.walletBalance < 0 ? <span className="tag-red">Yes</span> : 'No'}</td>
                             <td>{driver.status === 'Active' ? 'Yes' : 'No'}</td>
                             <td>
                               <span className={`status-badge ${(driver.dutyStatus || 'offline').toLowerCase().replace(' ', '-')}`}>
