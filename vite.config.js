@@ -27,7 +27,7 @@ export default defineConfig({
     dedupe: ['react', 'react-dom', 'react-router-dom'],
   },
   build: {
-    outDir: 'build',
+    outDir: 'dist',
     rolldownOptions: {
       checks: {
         pluginTimings: false,
